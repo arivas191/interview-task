@@ -1,0 +1,42 @@
+a,
+a:focus,
+a:hover {
+    color: #fff;
+}
+
+html,
+body {
+    height: 100%;
+    background-color: aliceblue;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: #444444;
+}
+
+.welcome {
+    position: fixed;
+    top: 42%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    width: 60%;
+}
+
+.content-section {
+    position: relative;
+    margin-top: 90px;
+    left: 30%;
+    width: 40%;
+    background: #ffffff;
+    padding: 10px 20px;
+    border: 1px solid #dddddd;
+    border-radius: 3px;
+    margin-bottom: 20px;
+}
+
+.alert {
+    width: 40%;
+    left: 30%;
+    text-align: center;
+}
