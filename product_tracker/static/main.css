@@ -40,3 +40,41 @@ h1, h2, h3, h4, h5, h6 {
     left: 30%;
     text-align: center;
 }
+
+.card {
+    display: inline-flex;
+    margin-left: 10px;
+    margin-right: 5px;
+    margin-bottom: 15px;
+    margin-top: 15px;
+    width: 22% !important;
+}
+
+.products {
+    position: absolute;
+    left: 6%;
+}
+
+.filter-buttons {
+    margin: 12px;
+    opacity: 0.9;
+}
+
+.category-title {
+    margin-left: 10px;
+    display: inline-block;
+}
+
+.delete {
+    margin: -2px;
+}
+
+#add-product {
+    float: right;
+    margin-right: 80px;
+    margin-top: 5px;
+}
+
+.nav-link:hover {
+    color: #58ce37;
+}

@@ -1,0 +1,49 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+    {% include 'navbar.html' %}
+    <div class="products">
+        <div class="filter-buttons">
+            <button type="button" id="all-products" class="btn btn-secondary">All</button>
+            <button type="button" id="fruit-products" class="btn btn-secondary">Fruits</button>
+            <button type="button" id="vegetable-products" class="btn btn-secondary">Vegetables</button>
+            <button type="button" id="sweet-products" class="btn btn-secondary">Sweets</button>
+        </div>
+        <div class="header">
+            <h1 class="category-title">
+                {% if category %}
+                    Products in the {{ category }} category
+                {% else %}
+                    All products
+                {% endif %}
+            </h1>
+            <button type="button" id="add-product" class="btn btn-success">Add Product</button>
+        </div>
+        {% for product in products %}
+            <div class="card" style="width: 18rem;">
+                <img class="card-img-top" src="..." alt="Card image cap">
+                <div class="card-body">
+                    <h5 class="card-title"> {{ product['Name'] }}</h5>
+                    <p class="card-text"> {{ product['Description'] }}</p>
+                    <p class="card-text">Price: {{ product['Price'] }}</p>
+                    <hr>
+                    <a class="btn btn-outline-danger delete" href="{{ url_for('delete_product', id=product['Id']) }}">Delete</a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    <script>
+        $("#all-products").on('click', function(){
+            window.location = "{{ url_for('products') }}";
+        });
+        $("#fruit-products").on('click', function(){
+            window.location = "{{ url_for('products', category='fruits') }}";
+        });
+        $("#vegetable-products").on('click', function(){
+            window.location = "{{ url_for('products', category='vegetables') }}";
+        });
+        $("#sweet-products").on('click', function(){
+            window.location = "{{ url_for('products', category='sweets') }}";
+        });
+    </script>
+{% endblock body %}

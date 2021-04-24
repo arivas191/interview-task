@@ -1,2 +1,4 @@
-from product_tracker import app, db, bcrypt
-from product_tracker.models import *
+from product_tracker import app
+
+if __name__ == '__main__':
+    app.run(debug=True)
