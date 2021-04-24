@@ -21,7 +21,7 @@
         </div>
         {% for product in products %}
             <div class="card" style="width: 18rem;">
-                <img class="card-img-top" src="..." alt="Card image cap">
+                <img class="card-img-top" src="{{ url_for('static', filename='product_images/' + product['Image']) }}" alt="Card image cap">
                 <div class="card-body">
                     <h5 class="card-title"> {{ product['Name'] }}</h5>
                     <p class="card-text"> {{ product['Description'] }}</p>
@@ -44,6 +44,9 @@
         });
         $("#sweet-products").on('click', function(){
             window.location = "{{ url_for('products', category='sweets') }}";
+        });
+        $("#add-product").on('click', function(){
+            window.location = "{{ url_for('add_product') }}";
         });
     </script>
 {% endblock body %}
