@@ -25,14 +25,17 @@
                 <div class="card-body">
                     <h5 class="card-title"> {{ product['Name'] }}</h5>
                     <p class="card-text"> {{ product['Description'] }}</p>
-                    <p class="card-text">Price: {{ product['Price'] }}</p>
+                    <p class="card-text">Price: ${{ product['Price'] }}</p>
                     <hr>
-                    <a class="btn btn-outline-danger delete" href="{{ url_for('delete_product', id=product['Id']) }}">Delete</a>
+                    <a class="btn btn-outline-danger" href="{{ url_for('delete_product', id=product['Id']) }}">Delete</a>
                 </div>
             </div>
         {% endfor %}
     </div>
     <script>
+        setTimeout(function() {
+            $('.alert').fadeOut('slow');
+        }, 2000);
         $("#all-products").on('click', function(){
             window.location = "{{ url_for('products') }}";
         });

@@ -1,4 +1,4 @@
-from flask import render_template, url_for, redirect, request, session, json, current_app
+from flask import render_template, url_for, redirect, json, current_app, jsonify, flash
 from product_tracker import app, mysql
 from product_tracker.forms import AddProductForm
 import secrets, os
@@ -41,6 +41,7 @@ def delete_product(id):
         return render_template('error.html')
     connection.commit()
     cursor.close()
+    flash('Product deleted!', 'danger')
     return redirect(url_for('products'))
 
 # Endpoint for adding a product
@@ -48,12 +49,7 @@ def delete_product(id):
 def add_product():
     connection = mysql.connect()
     cursor = connection.cursor()
-    results = get_categories(cursor)
-    # The query result is returned as an array of dicts, need to convert it to an array
-    # tuples for the dropdown menu
-    categories = []
-    for result in results:
-        categories.append((result['Id'], result['Name'].capitalize()))
+    categories = get_dropdown_categories(cursor)
     form = AddProductForm()
     form.category.choices = categories
     if form.validate_on_submit():
@@ -72,6 +68,7 @@ def add_product():
             return render_template('error.html')
         connection.commit()
         cursor.close()
+        flash('Product added!', 'success')
         return redirect(url_for('products'))
     return render_template('add_product.html', form=form)
 
@@ -91,19 +88,50 @@ def save_image(image):
 def analytics(category='fruits'):
     connection = mysql.connect()
     cursor = connection.cursor()
-    
-    # Get the available categories to display them in a dropdown menu
-    categories_results = get_categories(cursor)
-    categories = []
-    for result in categories_results:
-        categories.append(result['Name'])
 
-    labels, data = get_category_sales(cursor, category)
-    return render_template('analytics.html', labels=json.dumps(labels), data=json.dumps(data), 
-                            categories=categories, current_category=category)
+    # Get sales of each category
+    category_labels, category_data = get_category_sales(cursor)
+    # Get sales of each prodcut in a given category
+    product_labels, product_data = get_product_sales(cursor, category)
 
-# Helper method for getting the total sales for each product in every category
-def get_category_sales(cursor, category):
+    return render_template('analytics.html', 
+                            product_labels=json.dumps(product_labels), 
+                            product_data=json.dumps(product_data), 
+                            category_labels=json.dumps(category_labels), 
+                            category_data=json.dumps(category_data),
+                            categories=category_labels, 
+                            current_category=category)
+
+# Endpoint for 
+@app.route('/comparisson-search/<product>')
+def comparisson_search(product):
+    connection = mysql.connect()
+    cursor = connection.cursor()
+    # Get sales of a product across its different prices
+    prices_labels, prices_data = get_product_prices_sales(cursor, product)
+    return jsonify(prices_labels=prices_labels, prices_data=prices_data)
+
+# Helper method for getting the total sales of a product across its different prices
+def get_product_prices_sales(cursor, product):
+    cursor.execute("SELECT pch.Price AS Price, "
+                   "TRUNCATE(SUM(pch.Price*pch.Quantity), 2) AS Sales "
+                   "FROM Product pdt "
+                   "INNER JOIN Purchase pch ON pdt.Id = pch.ProductId "
+                   "WHERE pdt.Name = %s "
+                   "GROUP BY pch.Price", (product))
+    results = cursor.fetchall()
+    # Create two arrays for the chart, one for the lables (product prices) and one for the
+    # chart's data (product sales)
+    prices_labels = []
+    prices_data = []
+    for result in results:
+        prices_labels.append(result['Price'])
+        prices_data.append(result['Sales'])
+
+    return prices_labels, prices_data
+
+# Helper method for getting the total sales for each product in a given category
+def get_product_sales(cursor, category):
     cursor.execute("SELECT pdt.Name AS Product, "
                    "TRUNCATE(SUM(pch.Price*pch.Quantity), 2) AS Sales "
                    "FROM Category cat "
@@ -122,13 +150,38 @@ def get_category_sales(cursor, category):
     
     return product_labels, product_data
 
+# Helper method for getting the total sales for each category
+def get_category_sales(cursor):
+    cursor.execute("SELECT cat.Name AS Category, "
+                   "TRUNCATE(SUM(pch.Price*pch.Quantity), 2) AS Sales "
+                   "FROM Category cat "
+                   "INNER JOIN Product pdt ON cat.Id = pdt.CategoryId "
+                   "INNER JOIN Purchase pch ON pdt.Id = pch.ProductId "
+                   "GROUP BY cat.Id")
+    results = cursor.fetchall()
+    # Create two arrays for the chart, one for the lables (category names) and one for the
+    # chart's data (category sales)
+    category_labels = []
+    category_data = []
+    for result in results:
+        category_labels.append(result['Category'])
+        sales = result['Sales']
+        category_data.append(sales)
+    
+    return category_labels, category_data
+
+#Helper method for getting the categories in the right format for a dropdown menu
+def get_dropdown_categories(cursor):
+    results = get_categories(cursor)
+    # The query result is returned as an array of dicts, need to convert it to an array
+    # tuples for the dropdown menu
+    categories = []
+    for result in results:
+        categories.append((result['Id'], result['Name'].capitalize()))
+    return categories
+
 #Helper method for getting the available categories from the DB
 def get_categories(cursor):
     cursor.execute("SELECT * FROM Category")
     return cursor.fetchall()
-
-# Helper method for creating a connection and subsequently the cursor
-def create_cursor():
-    connection = mysql.connect()
-    return connection.cursor()
 

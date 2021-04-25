@@ -3,66 +3,177 @@
 {% block body %}
     {% include 'navbar.html' %}
     <div class="chart-container">
-        <button class="btn btn-secondary dropdown-toggle" type="button" id="category-dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            {{ current_category }}
+        <h1 class="chart-title">Product Sales for Categories</h1>
+        <button class="btn btn-primary dropdown-toggle" type="button" id="category-dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            {{ current_category|capitalize }}
         </button>
         <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
             {% for category in categories %}
-                <a class="dropdown-item" href="{{ url_for('analytics', category=category) }}">{{ category }}</a>
+                <a class="dropdown-item" href="{{ url_for('analytics', category=category) }}">{{ category|capitalize }}</a>
             {% endfor %}
         </div>
-        <canvas id="myChart"></canvas>
+        <canvas width=800 height=450 id="products-chart"></canvas>
+        <hr>
+        <h1 class="chart-title">Revenues of Categories</h1>
+        <canvas id="categories-chart"></canvas>
+        <hr>
+        <h1 class="chart-title">Product Price Comparisson</h1>
+        <input type="text" id="product-input" placeholder="Enter product name">
+        <button class="btn btn-success" id="search-product" type="button">Search</button>
+        <canvas id="prices-comparisson-chart"></canvas>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        const product_labels = JSON.parse({{ labels | tojson }})
-	    const product_data = JSON.parse({{ data | tojson }})
-        const data = {
-            labels: product_labels,
-            datasets: [{
-                label: 'Sales of Products',
-                data: product_data,
-                backgroundColor: [
-                    'rgba(255, 99, 132, 0.2)',
-                    'rgba(255, 159, 64, 0.2)',
-                    'rgba(255, 205, 86, 0.2)',
-                    'rgba(75, 192, 192, 0.2)',
-                    'rgba(54, 162, 235, 0.2)',
-                    'rgba(153, 102, 255, 0.2)',
-                    'rgba(201, 203, 207, 0.2)'
-                ],
-                borderColor: [
-                    'rgb(255, 99, 132)',
-                    'rgb(255, 159, 64)',
-                    'rgb(255, 205, 86)',
-                    'rgb(75, 192, 192)',
-                    'rgb(54, 162, 235)',
-                    'rgb(153, 102, 255)',
-                    'rgb(201, 203, 207)'
-                ],
-                borderWidth: 1
-            }]
-        };
-        const config = {
-            type: 'bar',
-            data: data,
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            // Include a dollar sign in the ticks
-                            callback: function(value, index, values) {
-                                return '$' + value;
+        // Use this variable to destroy and recreate the prices chart
+        let pricesComparissonChart = null;
+
+        // Create the first two charts when the page loads
+        $(function() {
+            // Creates the charts
+            createProductsChart();
+            createCategoriesChart();
+        });
+
+        // Call the API to get the prices sales for a given product and create the chart
+        $("#search-product").click(function() {
+            product = $("#product-input").val();
+            $.get("/comparisson-search/"+product, function(data) {
+                if (pricesComparissonChart != null) {
+                    pricesComparissonChart.destroy()
+                }
+                // Creates the chart
+                createPricesComparissonChart(data);
+            })
+        });
+
+        function createPricesComparissonChart(prices_data) {
+            const pricesLabels = prices_data.prices_labels;
+            const pricesData = prices_data.prices_data;
+            const data = {
+                labels: pricesLabels,
+                datasets: [{
+                    label: 'Sales of Product at Different Prices',
+                    data: pricesData,
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(255, 159, 64, 0.2)',
+                        'rgba(255, 205, 86, 0.2)',
+                        'rgba(75, 192, 192, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(153, 102, 255, 0.2)',
+                        'rgba(201, 203, 207, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgb(255, 99, 132)',
+                        'rgb(255, 159, 64)',
+                        'rgb(255, 205, 86)',
+                        'rgb(75, 192, 192)',
+                        'rgb(54, 162, 235)',
+                        'rgb(153, 102, 255)',
+                        'rgb(201, 203, 207)'
+                    ],
+                    borderWidth: 1
+                }]
+            };
+            const config = {
+                type: 'bar',
+                data: data,
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                // Include a dollar sign in the ticks
+                                callback: function(value, index, values) {
+                                    return '$' + value;
+                                }
                             }
                         }
                     }
                 }
-            },
-        };
-        var myChart = new Chart(
-            document.getElementById('myChart'),
-            config
-        );
+            };
+            pricesComparissonChart = new Chart(
+                document.getElementById('prices-comparisson-chart'),
+                config
+            );
+        }
+
+        function createProductsChart() {
+            const productLabels = JSON.parse({{ product_labels | tojson }});
+            const productData = JSON.parse({{ product_data | tojson }});
+            const data = {
+                labels: productLabels,
+                datasets: [{
+                    label: 'Sales of Products',
+                    data: productData,
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(255, 159, 64, 0.2)',
+                        'rgba(255, 205, 86, 0.2)',
+                        'rgba(75, 192, 192, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(153, 102, 255, 0.2)',
+                        'rgba(201, 203, 207, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgb(255, 99, 132)',
+                        'rgb(255, 159, 64)',
+                        'rgb(255, 205, 86)',
+                        'rgb(75, 192, 192)',
+                        'rgb(54, 162, 235)',
+                        'rgb(153, 102, 255)',
+                        'rgb(201, 203, 207)'
+                    ],
+                    borderWidth: 1
+                }]
+            };
+            const config = {
+                type: 'bar',
+                data: data,
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                // Include a dollar sign in the ticks
+                                callback: function(value, index, values) {
+                                    return '$' + value;
+                                }
+                            }
+                        }
+                    }
+                },
+            };
+            var productsChart = new Chart(
+                document.getElementById('products-chart'),
+                config
+            );
+        }
+
+        function createCategoriesChart() {
+            const categoryLabels = JSON.parse({{ category_labels | tojson }});
+            const categoryData = JSON.parse({{ category_data | tojson }});
+            const data = {
+                labels: categoryLabels,
+                datasets: [{
+                    label: 'Performance of each category',
+                    data: categoryData,
+                    backgroundColor: [
+                        'rgb(255, 99, 132)',
+                        'rgb(54, 162, 235)',
+                        'rgb(255, 205, 86)'
+                    ],
+                    hoverOffset: 8
+                }]
+            };
+            const config = {
+                type: 'pie',
+                data: data
+            };
+            var categoriesChart = new Chart(
+                document.getElementById('categories-chart'),
+                config
+            );
+        }
     </script>
 {% endblock %}

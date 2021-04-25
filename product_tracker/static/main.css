@@ -65,18 +65,47 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .chart-container {
-    width: 800px;
-    height: 500px;
-    position: absolute;
-    left: 16%;
+    margin: auto;
+    width: 50%;
 }
 
 #category-dropdown {
     margin-top: 20px;
-    margin-left: 30px;
     margin-bottom: 30px;
 }
 
 .card-img-top {
     max-height: 150px;
+}
+
+#products-chart {
+    margin-bottom: 60px;
+}
+
+#categories-chart {
+    margin-top: 60px;
+    margin-bottom: 60px;
+    margin-left: 60px;
+    width: 500px !important;
+    height: 500px !important;
+}
+
+#product-input {
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    padding: 5px;
+    margin-top: 60px;
+    margin-right: 10px;
+    margin-bottom: 20px;
+    margin-left: 50px;
+    width: 60%;
+}
+
+.alert {
+    text-align: center;
+    margin-bottom: 0px !important;
+}
+
+.delete {
+    float: right;
 }
