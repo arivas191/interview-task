@@ -5,11 +5,11 @@
     <div class="chart-container">
         <h1 class="chart-title">Product Sales for Categories</h1>
         <button class="btn btn-primary dropdown-toggle" type="button" id="category-dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            {{ current_category|capitalize }}
+            {{ default_category }}
         </button>
         <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-            {% for category in categories %}
-                <a class="dropdown-item" href="{{ url_for('analytics', category=category) }}">{{ category|capitalize }}</a>
+            {% for category in categories_labels %}
+                <button class="dropdown-item category-dropdown" id="{{ category }}">{{ category|capitalize }}</button>
             {% endfor %}
         </div>
         <canvas width=800 height=450 id="products-chart"></canvas>
@@ -24,27 +24,47 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // Use this variable to destroy and recreate the prices chart
+        // Use these variables to destroy and recreate their charts
         let pricesComparissonChart = null;
+        let productsChart = null;
 
         // Create the first two charts when the page loads
         $(function() {
             // Creates the charts
-            createProductsChart();
+            getProductsData();
             createCategoriesChart();
+        });
+
+        // Call the API to get the sales of all products in a category and create the chart
+        $(".category-dropdown").click(function(){
+            let category = $(this).attr("id")
+            getProductsData(category);
+            $("#category-dropdown").html(category)
         });
 
         // Call the API to get the prices sales for a given product and create the chart
         $("#search-product").click(function() {
-            product = $("#product-input").val();
-            $.get("/comparisson-search/"+product, function(data) {
-                if (pricesComparissonChart != null) {
-                    pricesComparissonChart.destroy()
-                }
+            let product = $("#product-input").val();
+            if (pricesComparissonChart != null) {
+                pricesComparissonChart.destroy();
+            }
+            $.get("/comparisson-search/" + product, function(data) {
                 // Creates the chart
                 createPricesComparissonChart(data);
             })
         });
+
+        // Gets the sales of the products in a category and creates the chart
+        function getProductsData(newCategory) {
+            let category =  newCategory ? newCategory : 'fruits';
+            if (productsChart != null) {
+                productsChart.destroy();
+            }
+            $.get("/product-sales/" + category, function(data) {
+                // Creates the chart
+                createProductsChart(data);
+            })
+        }
 
         function createPricesComparissonChart(prices_data) {
             const pricesLabels = prices_data.prices_labels;
@@ -98,14 +118,14 @@
             );
         }
 
-        function createProductsChart() {
-            const productLabels = JSON.parse({{ product_labels | tojson }});
-            const productData = JSON.parse({{ product_data | tojson }});
+        function createProductsChart(products_data) {
+            const productsLabels = products_data.products_labels;
+            const productsData = products_data.products_data;
             const data = {
-                labels: productLabels,
+                labels: productsLabels,
                 datasets: [{
                     label: 'Sales of Products',
-                    data: productData,
+                    data: productsData,
                     backgroundColor: [
                         'rgba(255, 99, 132, 0.2)',
                         'rgba(255, 159, 64, 0.2)',
@@ -144,20 +164,20 @@
                     }
                 },
             };
-            var productsChart = new Chart(
+            productsChart = new Chart(
                 document.getElementById('products-chart'),
                 config
             );
         }
 
         function createCategoriesChart() {
-            const categoryLabels = JSON.parse({{ category_labels | tojson }});
-            const categoryData = JSON.parse({{ category_data | tojson }});
+            const categoriesLabels = {{ categories_labels | tojson }};
+            const categoriesData = {{ categories_data | tojson }};
             const data = {
-                labels: categoryLabels,
+                labels: categoriesLabels,
                 datasets: [{
                     label: 'Performance of each category',
-                    data: categoryData,
+                    data: categoriesData,
                     backgroundColor: [
                         'rgb(255, 99, 132)',
                         'rgb(54, 162, 235)',

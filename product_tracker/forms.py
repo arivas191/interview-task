@@ -9,5 +9,5 @@ class AddProductForm(FlaskForm):
     product_description = StringField('Description', validators=[DataRequired(), Length(min=5, max=100)])
     price = DecimalField('Price (in US dollars)', validators=[DataRequired()])
     category = SelectField('Category', validators=[DataRequired()])
-    image = FileField('Add Product Image', validators=[FileAllowed(['jpg', 'png', 'jpeg', 'pdf'])])
+    image = FileField('Add Product Image', validators=[DataRequired(), FileAllowed(['jpg', 'png', 'jpeg', 'pdf'])])
     add = SubmitField('Add Product')

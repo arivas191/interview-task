@@ -1,4 +1,4 @@
-from flask import render_template, url_for, redirect, json, current_app, jsonify, flash
+from flask import render_template, url_for, redirect, current_app, jsonify, flash
 from product_tracker import app, mysql
 from product_tracker.forms import AddProductForm
 import secrets, os
@@ -7,8 +7,7 @@ import secrets, os
 @app.route('/products')
 @app.route('/products/<category>')
 def products(category=None):
-    connection = mysql.connect()
-    cursor = connection.cursor()
+    _, cursor = create_db_connection()
     if category is None:
         cursor.execute("SELECT * FROM Product")
     else:
@@ -22,15 +21,14 @@ def products(category=None):
             cursor.close()
             return render_template('error.html')
     products = cursor.fetchall()
-
     cursor.close()
+
     return render_template('products.html', products=products, category=category)
 
 # Endpoint for deleting a product with an Id
 @app.route('/delete-product/<id>')
 def delete_product(id):
-    connection = mysql.connect()
-    cursor = connection.cursor()
+    connection, cursor = create_db_connection()
     try:
         cursor.execute("DELETE "
                        "FROM Product "
@@ -47,15 +45,13 @@ def delete_product(id):
 # Endpoint for adding a product
 @app.route('/add-product', methods=['GET', 'POST'])
 def add_product():
-    connection = mysql.connect()
-    cursor = connection.cursor()
+    connection, cursor = create_db_connection()
+
     categories = get_dropdown_categories(cursor)
     form = AddProductForm()
     form.category.choices = categories
     if form.validate_on_submit():
-        file_name = ''
-        if form.image.data:
-            file_name = save_image(form.image.data)
+        file_name = save_image(form.image.data)
         try:
             cursor.execute("INSERT INTO "
                            "Product (Name, Description, Price, CategoryId, Image) "
@@ -70,7 +66,47 @@ def add_product():
         cursor.close()
         flash('Product added!', 'success')
         return redirect(url_for('products'))
+
     return render_template('add_product.html', form=form)
+
+# Endpoint for getting the analytics
+@app.route('/analytics')
+def analytics():
+    _, cursor = create_db_connection()
+
+    # Get sales of each category
+    categories_labels, categories_data = get_category_sales(cursor)
+    default_category = 'fruits'
+
+    return render_template('analytics.html',
+                            categories_labels=categories_labels, 
+                            categories_data=categories_data,
+                            default_category=default_category)
+
+# Endpoint for getting the sales of all products in a given category
+@app.route('/product-sales/<category>')
+def product_sales(category):
+    _, cursor = create_db_connection()
+
+    # Get sales of each prodcut in a given category
+    products_labels, products_data = get_product_sales(cursor, category)
+
+    return jsonify(products_labels=products_labels, products_data=products_data)
+
+# Endpoint for getting the prices data for a given product (to be used in a chart)
+@app.route('/comparisson-search/<product>')
+def comparisson_search(product):
+    _, cursor = create_db_connection()
+
+    # Get sales of a product across its different prices
+    prices_labels, prices_data = get_product_prices_sales(cursor, product)
+    return jsonify(prices_labels=prices_labels, prices_data=prices_data)
+
+# Helper method to create the connection and cursor for the database
+def create_db_connection():
+    connection = mysql.connect()
+    cursor = connection.cursor()
+    return connection, cursor
 
 # Helper method for storing the image in the static folder of the project
 def save_image(image):
@@ -81,35 +117,6 @@ def save_image(image):
     image.save(image_path)
 
     return file_name
-
-# Endpoint for getting the analytics
-@app.route('/analytics')
-@app.route('/analytics/<category>')
-def analytics(category='fruits'):
-    connection = mysql.connect()
-    cursor = connection.cursor()
-
-    # Get sales of each category
-    category_labels, category_data = get_category_sales(cursor)
-    # Get sales of each prodcut in a given category
-    product_labels, product_data = get_product_sales(cursor, category)
-
-    return render_template('analytics.html', 
-                            product_labels=json.dumps(product_labels), 
-                            product_data=json.dumps(product_data), 
-                            category_labels=json.dumps(category_labels), 
-                            category_data=json.dumps(category_data),
-                            categories=category_labels, 
-                            current_category=category)
-
-# Endpoint for 
-@app.route('/comparisson-search/<product>')
-def comparisson_search(product):
-    connection = mysql.connect()
-    cursor = connection.cursor()
-    # Get sales of a product across its different prices
-    prices_labels, prices_data = get_product_prices_sales(cursor, product)
-    return jsonify(prices_labels=prices_labels, prices_data=prices_data)
 
 # Helper method for getting the total sales of a product across its different prices
 def get_product_prices_sales(cursor, product):
@@ -142,13 +149,13 @@ def get_product_sales(cursor, category):
     results = cursor.fetchall()
     # Create two arrays for the chart, one for the lables (product names) and one for the
     # chart's data (product sales)
-    product_labels = []
-    product_data = []
+    products_labels = []
+    products_data = []
     for result in results:
-        product_labels.append(result['Product'])
-        product_data.append(result['Sales'])
+        products_labels.append(result['Product'])
+        products_data.append(result['Sales'])
     
-    return product_labels, product_data
+    return products_labels, products_data
 
 # Helper method for getting the total sales for each category
 def get_category_sales(cursor):
@@ -161,16 +168,15 @@ def get_category_sales(cursor):
     results = cursor.fetchall()
     # Create two arrays for the chart, one for the lables (category names) and one for the
     # chart's data (category sales)
-    category_labels = []
-    category_data = []
+    categories_labels = []
+    categories_data = []
     for result in results:
-        category_labels.append(result['Category'])
-        sales = result['Sales']
-        category_data.append(sales)
+        categories_labels.append(result['Category'])
+        categories_data.append(result['Sales'])
     
-    return category_labels, category_data
+    return categories_labels, categories_data
 
-#Helper method for getting the categories in the right format for a dropdown menu
+# Helper method for getting the categories in the right format for a dropdown menu
 def get_dropdown_categories(cursor):
     results = get_categories(cursor)
     # The query result is returned as an array of dicts, need to convert it to an array
@@ -180,7 +186,7 @@ def get_dropdown_categories(cursor):
         categories.append((result['Id'], result['Name'].capitalize()))
     return categories
 
-#Helper method for getting the available categories from the DB
+# Helper method for getting the available categories from the DB
 def get_categories(cursor):
     cursor.execute("SELECT * FROM Category")
     return cursor.fetchall()
